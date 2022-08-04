@@ -28,7 +28,7 @@ bool parse(Param* param, int argc, char* argv[]) {
 int main(int argc, char* argv[]) {
 	char name[] = "조은영";
 	char mobile[] = "0776";
-	printf("[bob11]pcap-test[%s%s]\n", name, mobile);
+	printf("[bob11]pcap-test[%s%s]", name, mobile);
 
 	if (!parse(&param, argc, argv))
 		return -1;
@@ -41,13 +41,14 @@ int main(int argc, char* argv[]) {
 	}
 
 	while (true) {
-		int offset = 0;
-		int len = 0;
-		struct libnet_ethernet_hdr* eth_hdr;
-		struct libnet_ipv4_hdr* ip_hdr;
-		struct libnet_tcp_hdr* tcp_hdr;
+		int offset = 0;		// offset of ipv4 header and tcp header
+		int len = 0;		// length of packet
 
-		struct pcap_pkthdr* header;
+		struct libnet_ethernet_hdr* eth_hdr;	// ethernet header
+		struct libnet_ipv4_hdr* ip_hdr;			// ipv4 header
+		struct libnet_tcp_hdr* tcp_hdr;			// tcp header
+
+		struct pcap_pkthdr* header;		// packet header
 		const u_char* packet;
 		int res = pcap_next_ex(pcap, &header, &packet);
 		if (res == 0) continue;
@@ -56,39 +57,41 @@ int main(int argc, char* argv[]) {
 			break;
 		}
 		
-		eth_hdr = (struct libnet_ethernet_hdr*)packet;
+		eth_hdr = (struct libnet_ethernet_hdr*)packet;		
 		len = 14;
 		packet = packet + 14;
-		u_int16_t eth_type = ntohs(eth_hdr->ether_type);
-		if(eth_type != 0x0800)
+		u_int16_t eth_type = ntohs(eth_hdr->ether_type);	// ethernet type
+		if(eth_type != 0x0800)		// type check
 		{
 			printf("not ip packet\n");
 			continue;
 		}
 		
 		ip_hdr = (struct libnet_ipv4_hdr*)packet;
-		offset = ip_hdr->ip_hl * 4;
+		offset = ip_hdr->ip_hl * 4;		// ip header length
 		packet = packet + offset;
 		len = len + offset;
-		if(ip_hdr->ip_p != IPPROTO_TCP)
+		if(ip_hdr->ip_p != IPPROTO_TCP)		// tcp check
 		{
 			printf("not tcp packet\n");
 			continue;
 		}
 
 		tcp_hdr = (struct libnet_tcp_hdr*)packet;
-		offset = tcp_hdr->th_off * 4;
+		offset = tcp_hdr->th_off * 4;	// tcp header length
 		packet = packet + offset;
 		len = len + offset;
 
 		printf("========================================\n");
-		printf("Ethernet dst mac: %2x:%2x:%2x:%2x:%2x:%2x\n",
+		// print dst mac
+		printf("Ethernet dst mac: %2x:%2x:%2x:%2x:%2x:%2x\n",		
 			eth_hdr->ether_dhost[0],
 			eth_hdr->ether_dhost[1],
 			eth_hdr->ether_dhost[2],
 			eth_hdr->ether_dhost[3],
 			eth_hdr->ether_dhost[4],
 			eth_hdr->ether_dhost[5]);
+		// print src mac
 		printf("Ethernet src mac: %2x:%2x:%2x:%2x:%2x:%2x\n", 
 			eth_hdr->ether_shost[0],
 			eth_hdr->ether_shost[1],
@@ -97,17 +100,19 @@ int main(int argc, char* argv[]) {
 			eth_hdr->ether_shost[4],
 			eth_hdr->ether_shost[5]);
 
+		// print ip src
 		printf("Src IP Address: %s\n",
 			inet_ntoa(ip_hdr->ip_src)
 			);
+		// print ip dst
 		printf("Dst IP Address: %s\n",
 			inet_ntoa(ip_hdr->ip_dst)
 			);
 
-		printf("Src Port: %d\n", ntohs(tcp_hdr->th_sport));
-		printf("Dst Port: %d\n", ntohs(tcp_hdr->th_dport));
+		printf("Src Port: %d\n", ntohs(tcp_hdr->th_sport));	// print src port
+		printf("Dst Port: %d\n", ntohs(tcp_hdr->th_dport));	// print dst port
 
-		if(len >= header->caplen)
+		if(len >= header->caplen)	// print data
 		{
 			printf("No Data");
 		}else{
@@ -117,7 +122,6 @@ int main(int argc, char* argv[]) {
 		}
 
 		printf("\n");
-		printf("%u bytes captured\n", header->caplen);
 		printf("========================================\n");
 	}
 
